@@ -3,87 +3,210 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fluency Flow</title>
+    <title>JLPT Vocabulary Tracker</title>
     <link rel="stylesheet" href="styles.css" />
-    <link
-      id="themeStylesheet"
-      rel="stylesheet"
-      href="../Themes/Theme-cosmic.css"
-    />
   </head>
-  <body>
-    <!-- 🌐 Language Selector Screen -->
-    <div id="language-screen">
-      <h1>Select Language</h1>
-      <select id="languageSelector" class="language-selector">
-        <option value="japanese">Japanese</option>
-        <option value="chinese">Chinese</option>
-        <option value="french">French</option>
-      </select>
-      <button id="startButton">Start Learning</button>
-    </div>
 
-    <!-- 🌊 Main App Interface -->
-    <div id="app" style="display: none">
-      <div id="header-wrapper">
-        <div class="top-header">
-          <h1>Fluency Flow</h1>
-          <div class="known-words-container">
-            <div class="known-words-label">Known Words</div>
-            <div id="known-count" class="known-words-highlight">0</div>
+  <body>
+    <header>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        "
+      >
+        <div>
+          <h1 style="margin-bottom: 4px">JLPT Vocabulary Tracker</h1>
+          <div style="color: rgba(255, 255, 255, 0.75); font-weight: 700">
+            Library Mode •
+            <a
+              id="openGameTop"
+              href="hang.html"
+              style="color: inherit; text-decoration: underline"
+              >Switch to Game Mode</a
+            >
           </div>
         </div>
 
-        <div id="theme-selector-container" class="joy">
-          <select id="themeSelector" class="theme-selector">
-            <option value="sakura">Sakura</option>
-            <option value="dark">Dark</option>
-            <option value="cosmic">Quantum</option>
-            <option value="tactile">Tactile Warmth</option>
-            <option value="memory">Memory Palace</option>
-            <option value="ocean">Ocean Depths</option>
-            <option value="garden">Garden</option>
-            <option value="dream">Bubble</option>
-            <option value="crunch">Exam Crunch</option>
-            <option value="night">Night Reader</option>
-            <option value="focus">Focus</option>
-            <option value="retro">Retro</option>
-          </select>
-          <div class="page-counter">Page <span id="current-index"></span></div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <a
+            id="openGameBtn"
+            href="hang.html"
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              padding: 10px 12px;
+              border-radius: 12px;
+              border: 1px solid rgba(255, 255, 255, 0.18);
+              background: rgba(0, 0, 0, 0.18);
+              color: white;
+              font-weight: 900;
+              text-decoration: none;
+            "
+            title="Open Flowman / Hangman mode"
+          >
+            🎮 Game Mode
+          </a>
         </div>
       </div>
 
-      <div
-        id="video-container"
-        style="display: none; margin: 20px auto; max-width: 900px"
-      ></div>
+      <div class="controls">
+        <!-- JLPT filter -->
+        <label for="jlptFilter">JLPT Level:</label>
+        <select id="jlptFilter">
+          <option value="all">All</option>
+          <option value="N1">N1</option>
+          <option value="N2">N2</option>
+          <option value="N3">N3</option>
+          <option value="N4">N4</option>
+          <option value="N5">N5</option>
+        </select>
 
-      <div class="container">
-        <table id="vocabTable">
-          <thead>
-            <tr id="table-header"></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <!-- Familiarity filter -->
+        <label for="familiarityFilter">Familiarity:</label>
+        <select id="familiarityFilter">
+          <option value="all">All</option>
+          <option value="well_known">Well Known</option>
+          <option value="known">Known</option>
+          <option value="explored">Explored</option>
+          <option value="unknown">Unknown</option>
+        </select>
 
-        <div class="button-container">
-          <div class="button-container" id="toggleButtons"></div>
-          <button id="hideKnownButton">Hide Known Words</button>
-          <button id="showAllButton">Show All Words</button>
-          <button id="prevButton">Previous</button>
-          <button id="nextButton">Next</button>
-          <button id="resetButton">Reset</button>
-          <button id="exportButton">📘 Copy Known Words</button>
-          <button id="exportNext20Button">🔍 Copy Next 20 Unknown Words</button>
-          <button id="returnToLanguageBtn">🌐 Change Language</button>
-        </div>
+        <!-- Favorites-only toggle -->
+        <label for="favoritesOnly" style="display: flex; gap: 0.35rem">
+          <input type="checkbox" id="favoritesOnly" />
+          ⭐ Favorites only
+        </label>
+
+        <!-- Romaji toggle -->
+        <label style="display: flex; gap: 0.35rem">
+          <input type="checkbox" id="showRomaji" />
+          Show Romaji
+        </label>
+
+        <!-- Data + stats controls -->
+        <button id="resetProgress">🔄 Reset Progress</button>
+        <button id="exportData">⬇️ Export Data</button>
+        <button id="importData">⬆️ Import Data</button>
+        <input
+          id="importFile"
+          type="file"
+          accept=".json"
+          style="display: none"
+        />
+        <button id="toggleStats">📊 Show Stats</button>
+
+        <!-- Today progress chip -->
+        <span id="todayChip" class="chip">Progress Points Today: 0</span>
       </div>
-    </div>
 
-    <!-- PapaParse must come first -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+      <!-- Simple toggle button for Ko-fi widget -->
+      <button id="toggleKofi" style="margin-top: 10px">
+        Hide Support Widget
+      </button>
 
-    <!-- Just this one main module script -->
-    <script type="module" src="script.js"></script>
+      <!-- Kanji appearance controls -->
+      <div class="kanji-controls">
+        <label for="kanjiSize">Kanji Size:</label>
+        <input type="range" id="kanjiSize" min="0.9" max="2.5" step="0.1" />
+        <span id="kanjiSizeValue">1.3rem</span>
+
+        <label style="display: flex; align-items: center; gap: 0.25rem">
+          <input type="checkbox" id="kanjiBoldToggle" />
+          Bold Kanji
+        </label>
+      </div>
+    </header>
+
+    <!-- Stats panel -->
+    <section id="statsPanel" class="hidden">
+      <div id="statsContainer"></div>
+    </section>
+
+    <!-- Main grid for word cards -->
+    <main id="wordGrid"></main>
+
+    <!-- Pagination footer -->
+    <footer>
+      <button id="prevPage">Prev</button>
+      <span id="pageInfo"></span>
+      <button id="nextPage">Next</button>
+    </footer>
+
+    <!-- Libraries + main script -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="script.js"></script>
+
+    <!-- Ko-fi Floating Widget -->
+    <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+    <script>
+      kofiWidgetOverlay.draw("danielgagepostma", {
+        type: "floating-chat",
+        "floating-chat.donateButton.text": "Support me",
+        "floating-chat.donateButton.background-color": "#323842",
+        "floating-chat.donateButton.text-color": "#fff",
+      });
+
+      // Helper: find the Ko-fi widget container, even if the ID changes
+      function findKofiContainer() {
+        const divs = document.querySelectorAll("div[id]");
+        for (const el of divs) {
+          const id = el.id.toLowerCase();
+          if (id.includes("ko-fi") || id.includes("kofi")) {
+            return el;
+          }
+        }
+        return null;
+      }
+
+      function initKofiToggle() {
+        const toggleBtn = document.getElementById("toggleKofi");
+        if (!toggleBtn) return;
+
+        let tries = 0;
+        const maxTries = 40; // ~12 seconds at 300ms intervals
+
+        const interval = setInterval(() => {
+          const container = findKofiContainer();
+          if (!container) {
+            tries++;
+            if (tries >= maxTries) {
+              clearInterval(interval);
+            }
+            return;
+          }
+
+          clearInterval(interval);
+
+          // Load saved state
+          const hidden = localStorage.getItem("kofiHidden") === "true";
+          if (hidden) {
+            container.style.display = "none";
+            toggleBtn.textContent = "Show Support Widget";
+          } else {
+            toggleBtn.textContent = "Hide Support Widget";
+          }
+
+          toggleBtn.addEventListener("click", () => {
+            const isHidden = container.style.display === "none";
+            if (isHidden) {
+              container.style.display = "block";
+              toggleBtn.textContent = "Hide Support Widget";
+              localStorage.setItem("kofiHidden", "false");
+            } else {
+              container.style.display = "none";
+              toggleBtn.textContent = "Show Support Widget";
+              localStorage.setItem("kofiHidden", "true");
+            }
+          });
+        }, 300);
+      }
+
+      window.addEventListener("load", initKofiToggle);
+    </script>
   </body>
 </html>
