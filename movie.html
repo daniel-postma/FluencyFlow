@@ -76,6 +76,16 @@
         margin-bottom: 24px;
       }
 
+        .romaji {
+          font-size: 22px;
+          color: var(--muted);
+          margin-bottom: 18px;
+          font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .romaji.hidden {
+          display: none;
+        }
+
       .meaning {
         font-size: 24px;
         line-height: 1.4;
@@ -151,7 +161,8 @@
         margin: 0;
       }
       input[type=number] {
-        -moz-appearance: textfield; /* Firefox */
+          appearance: textfield;
+          -moz-appearance: textfield; /* Firefox */
       }
 
       /* Responsive rules */
@@ -335,6 +346,9 @@
         </select>
 
         <input id="interval" type="number" min="0.5" step="0.1" value="3.6" title="words per second" />
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 14px;">
+            <input type="checkbox" id="showRomaji" checked style="margin-right: 6px;" /> Show Romaji
+          </label>
       </div>
     </header>
 
@@ -343,6 +357,7 @@
         <div class="progress-indicator" id="progressIndicator"></div>
         <div class="kanji" id="kanji">—</div>
         <div class="furigana" id="furigana"></div>
+          <div class="romaji" id="romaji"></div>
         <div class="meaning" id="meaning">Press Play</div>
       </div>
 
@@ -857,7 +872,56 @@
         const w = filtered[index % filtered.length];
         document.getElementById("kanji").textContent = w.original;
         document.getElementById("furigana").textContent = w.furigana || "";
+          // Generate romaji from furigana
+          const romajiText = kanaToRomaji(w.furigana || "");
+          const romajiDiv = document.getElementById("romaji");
+          romajiDiv.textContent = romajiText;
+          romajiDiv.classList.toggle("hidden", !document.getElementById("showRomaji").checked);
         document.getElementById("meaning").textContent = w.meaning;
+      // Simple kana to romaji converter (Hepburn-ish, basic)
+      function kanaToRomaji(input) {
+        if (!input) return "";
+        // Basic replacements for hiragana
+        const table = {
+          'あ':'a','い':'i','う':'u','え':'e','お':'o',
+          'か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
+          'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so',
+          'た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
+          'な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no',
+          'は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
+          'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo',
+          'や':'ya','ゆ':'yu','よ':'yo',
+          'ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro',
+          'わ':'wa','を':'wo','ん':'n',
+          'が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go',
+          'ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo',
+          'だ':'da','ぢ':'ji','づ':'zu','で':'de','ど':'do',
+          'ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo',
+          'ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
+          'きゃ':'kya','きゅ':'kyu','きょ':'kyo',
+          'しゃ':'sha','しゅ':'shu','しょ':'sho',
+          'ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
+          'にゃ':'nya','にゅ':'nyu','にょ':'nyo',
+          'ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo',
+          'みゃ':'mya','みゅ':'myu','みょ':'myo',
+          'りゃ':'rya','りゅ':'ryu','りょ':'ryo',
+          'ぎゃ':'gya','ぎゅ':'gyu','ぎょ':'gyo',
+          'じゃ':'ja','じゅ':'ju','じょ':'jo',
+          'びゃ':'bya','びゅ':'byu','びょ':'byo',
+          'ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo'
+        };
+        // Handle digraphs first
+        let out = input;
+        Object.keys(table).sort((a,b)=>b.length-a.length).forEach(kana=>{
+          out = out.split(kana).join(table[kana]);
+        });
+        return out;
+      }
+      // Toggle romaji visibility
+      document.getElementById("showRomaji").addEventListener("change", function() {
+        const romajiDiv = document.getElementById("romaji");
+        romajiDiv.classList.toggle("hidden", !this.checked);
+      });
 
         // Record exposure
         recordMovieflowExposure(w.key);
@@ -1024,29 +1088,40 @@
         document.getElementById("play").click();
       }
 
+      let paused = false;
+      let wasPaused = false;
       document.getElementById("play").onclick = () => {
-        // Ensure level options reflect current knownness before applying
+        // If timer is running, do nothing
+        if (timer) return;
+        // If just paused, resume from current index
+        if (wasPaused && filtered.length > 0) {
+          flowStartTime = flowStartTime || Date.now();
+          wasPaused = false;
+          showWord();
+          return;
+        }
+        // Otherwise, (re)start session
         updateLevelOptions();
         applyFilters();
         if (filtered.length === 0) {
           alert("No words match your filters.");
           return;
         }
-
         clearTimeout(timer);
         flowStartTime = Date.now();
         flowWordCount = 0;
         flowLongCount = 0;
         flowEndTime = null;
         index = 0;
-
-        // Start showing words immediately; showWord will schedule next per-card
         showWord();
       };
 
       document.getElementById("pause").onclick = () => {
-        clearTimeout(timer);
-        timer = null;
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+          wasPaused = true;
+        }
       };
 
       document.getElementById("playNext").onclick = selectNextRecommendedLevel;
